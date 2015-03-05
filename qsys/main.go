@@ -8,7 +8,6 @@ import (
 	"strconv"
 
 	"github.com/gorilla/mux"
-	"golang.org/x/crypto/bcrypt"
 	"golang.org/x/net/websocket"
 
 	"h12.me/httpauth"
@@ -29,6 +28,7 @@ var (
 )
 
 func main() {
+	players.capacity = 1
 	var err error
 	tem, err = template.ParseGlob("template/*.html")
 	if err != nil {
@@ -36,7 +36,6 @@ func main() {
 	}
 	// create the backend storage, remove when all done
 	os.Create(backendfile)
-	defer os.Remove(backendfile)
 	// create the backend
 	backend, err = httpauth.NewGobFileAuthBackend(backendfile)
 	if err != nil {
@@ -44,20 +43,19 @@ func main() {
 	}
 	auth, err = httpauth.NewAuthorizer(backend, []byte("cookie-encryption-key"), "waiter",
 		map[string]httpauth.Role{
-			"waiter": 30,
-			"player": 50,
-			"admin":  100,
+			"waiter": 10,
+			"player": 20,
 		})
-	// create a default user
-	hash, err := bcrypt.GenerateFromPassword([]byte("adminadmin"), 8)
-	if err != nil {
-		panic(err)
-	}
-	defaultUser := httpauth.UserData{Username: "admin", Email: "admin@localhost", Hash: hash, Role: "admin"}
-	err = backend.SaveUser(defaultUser)
-	if err != nil {
-		panic(err)
-	}
+	//	// create a default user
+	//	hash, err := bcrypt.GenerateFromPassword([]byte("adminadmin"), 8)
+	//	if err != nil {
+	//		panic(err)
+	//	}
+	//	defaultUser := httpauth.UserData{Username: "admin", Email: "admin@localhost", Hash: hash, Role: "admin"}
+	//	err = backend.SaveUser(defaultUser)
+	//	if err != nil {
+	//		panic(err)
+	//	}
 	// set up routers and route handlers
 	r := mux.NewRouter()
 	r.HandleFunc("/login", getLogin).Methods("GET")

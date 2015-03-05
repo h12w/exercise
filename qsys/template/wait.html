@@ -30,7 +30,7 @@
     </head>
     <body>
         <h1>Please wait</h1>
-        <p>Dear {{ .User.Username }},</p>
+        <p>Dear {{ .User.Name }},</p>
         <p>Sorry, there are still <span id="wait-num"></span> players waiting ahead of you.</p>
         {{ with .User }}
         <p>Your role is '{{ .Role }}'. Your email is {{ .Email }}.</p>

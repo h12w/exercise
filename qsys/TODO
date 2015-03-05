@@ -1,7 +1,0 @@
-login
-   github.com/stretchr/goweb 
-   github.com/stretchr/gomniauth
-notification
-   github.com/madari/pusher.go
-
-

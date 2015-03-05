@@ -47,24 +47,59 @@ type UserQueue struct {
 	l  list.List
 	mu sync.Mutex
 }
+type userNotifier struct {
+	*httpauth.UserData
+	c chan int
+}
 
 func (q *UserQueue) PushBack(u *httpauth.UserData) {
 	q.mu.Lock()
 	defer q.mu.Unlock()
 	for e := q.l.Front(); e != nil; e = e.Next() {
-		if u.Name == e.Value.(*httpauth.UserData).Name {
+		if u.Name == e.Value.(*userNotifier).Name {
 			log.Println("duplicate", u.Name)
 			return
 		}
 	}
-	q.l.PushBack(u)
+	q.l.PushBack(&userNotifier{UserData: u})
 }
 
 func (q *UserQueue) PopFront() *httpauth.UserData {
 	q.mu.Lock()
 	defer q.mu.Unlock()
 	if q.l.Len() > 0 {
-		return q.l.Remove(q.l.Front()).(*httpauth.UserData)
+		noti := q.l.Remove(q.l.Front()).(*userNotifier)
+		noti.c <- 0
+		close(noti.c)
+		i := 0
+		log.Println("NotifyAll")
+		for e := q.l.Front(); e != nil; e = e.Next() {
+			noti := e.Value.(*userNotifier)
+			log.Println(noti.Name, i)
+			noti.c <- i
+			i++
+		}
+		return noti.UserData
 	}
 	return nil
+}
+
+func (q *UserQueue) NotifyAll() {
+	q.mu.Lock()
+	defer q.mu.Unlock()
+
+}
+
+func (q *UserQueue) Register(userName string, c chan int) int {
+	q.mu.Lock()
+	defer q.mu.Unlock()
+	i := 1
+	for e := q.l.Front(); e != nil; e = e.Next() {
+		if userName == e.Value.(*userNotifier).Name {
+			e.Value.(*userNotifier).c = c
+			return i
+		}
+		i++
+	}
+	return 0
 }

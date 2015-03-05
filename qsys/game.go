@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"time"
 
 	"golang.org/x/net/websocket"
 
@@ -33,9 +32,11 @@ func handleGame(rw http.ResponseWriter, req *http.Request) {
 }
 
 func serveWaitNum(ws *websocket.Conn) {
-	//io.Copy(ws, ws)
-	fmt.Fprintf(ws, "5")
-	time.Sleep(time.Second)
-	fmt.Fprintf(ws, "2")
-	//log.Println(ws.Request())
+	user, _ := auth.Authorize(nil, ws.Request())
+	ch := make(chan int, 1)
+	i := waiters.Register(user.Name, ch)
+	fmt.Fprintf(ws, "%d", i)
+	for i := range ch {
+		fmt.Fprintf(ws, "%d", i)
+	}
 }

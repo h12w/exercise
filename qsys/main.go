@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
-	"os"
 	"strconv"
 
 	"github.com/gorilla/mux"
@@ -35,7 +34,7 @@ func main() {
 		panic(err)
 	}
 	// create the backend storage, remove when all done
-	os.Create(backendfile)
+	//os.Create(backendfile)
 	// create the backend
 	backend, err = httpauth.NewGobFileAuthBackend(backendfile)
 	if err != nil {

@@ -15,16 +15,11 @@
             $(function() {
                 var ws = new WebSocket(ws_uri);
                 ws.onmessage = function(e) {
+                    if (e.data === "0") {
+                        location.reload();
+                    }
                     $('#wait-num').text(e.data);
-                    console.log("受信メッセージ:" + e.data);
                 };
-                var $ul = $('#msg-list');
-                $('#sendBtn').click(function(){
-                    var data = $('#name').val();
-                    ws.send(data);
-                    console.log("送信メッセージ:" + data);
-                    $('<li>').text(data).appendTo($ul);
-                });
             });
         </script>
     </head>

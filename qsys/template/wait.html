@@ -1,0 +1,45 @@
+<html>
+    <head>
+        <title>Please wait...</title>
+        <link type="text/css" rel="stylesheet" href="/css/screen.css">
+        <script src="/js/jquery.min.js"></script>
+        <script>
+            var loc = window.location, ws_uri;
+            if (loc.protocol === "https:") {
+                    ws_uri = "wss:";
+            } else {
+                    ws_uri = "ws:";
+            }
+            ws_uri += "//" + loc.host;
+            ws_uri += loc.pathname + "wait-num";
+            $(function() {
+                var ws = new WebSocket(ws_uri);
+                ws.onmessage = function(e) {
+                    $('#wait-num').text(e.data);
+                    console.log("受信メッセージ:" + e.data);
+                };
+                var $ul = $('#msg-list');
+                $('#sendBtn').click(function(){
+                    var data = $('#name').val();
+                    ws.send(data);
+                    console.log("送信メッセージ:" + data);
+                    $('<li>').text(data).appendTo($ul);
+                });
+            });
+        </script>
+    </head>
+    <body>
+        <h1>Please wait</h1>
+        <p>Dear {{ .User.Username }},</p>
+        <p>Sorry, there are still <span id="wait-num"></span> players waiting ahead of you.</p>
+        {{ with .User }}
+        <p>Your role is '{{ .Role }}'. Your email is {{ .Email }}.</p>
+        <p>{{ if .Role | eq "admin" }}<a href="/admin">Admin page</a> {{ end }}<a href="/logout">Logout</a></p>
+        {{ end }}
+        <form action="/change" method="post" id="change">
+        <h3>Change email</h3>
+        <p><input type="email" name="new_email" placeholder="new email"></p>
+        <button type="submit">Submit</button>
+        </form>
+    </body>
+</html>

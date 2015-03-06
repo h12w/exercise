@@ -67,6 +67,20 @@ func (q *UserQueue) PushBack(u *httpauth.UserData) {
 	q.l.PushBack(&User{UserData: u})
 }
 
+func (q *UserQueue) Remove(u *httpauth.UserData) {
+	q.mu.Lock()
+	defer q.mu.Unlock()
+	for e := q.l.Front(); e != nil; e = e.Next() {
+		if u.Name == e.Value.(*User).Name {
+			close(e.Value.(*User).c)
+			first := e.Next()
+			q.l.Remove(e)
+			q.notify(first)
+			return
+		}
+	}
+}
+
 func (q *UserQueue) PopFront() *httpauth.UserData {
 	q.mu.Lock()
 	defer q.mu.Unlock()
@@ -74,15 +88,25 @@ func (q *UserQueue) PopFront() *httpauth.UserData {
 		noti := q.l.Remove(q.l.Front()).(*User)
 		noti.c <- &Message{0}
 		close(noti.c)
-		i := 0
-		for e := q.l.Front(); e != nil; e = e.Next() {
-			noti := e.Value.(*User)
-			noti.c <- &Message{i}
-			i++
-		}
+		q.notify(q.l.Front())
 		return noti.UserData
 	}
 	return nil
+}
+
+func (q *UserQueue) notify(first *list.Element) {
+	i := 0
+	for e := q.l.Front(); e != nil; e = e.Next() {
+		if e == first {
+			break
+		}
+		i++
+	}
+	for e := first; e != nil; e = e.Next() {
+		noti := e.Value.(*User)
+		noti.c <- &Message{i}
+		i++
+	}
 }
 
 func (q *UserQueue) Register(userName string, c chan *Message) int {

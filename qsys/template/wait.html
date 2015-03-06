@@ -27,14 +27,6 @@
         <h1>Please wait</h1>
         <p>Dear {{ .User.Name }},</p>
         <p>Sorry, there are still <span id="wait-num"></span> players waiting ahead of you.</p>
-        {{ with .User }}
-        <p>Your role is '{{ .Role }}'. Your email is {{ .Email }}.</p>
-        <p>{{ if .Role | eq "admin" }}<a href="/admin">Admin page</a> {{ end }}<a href="/logout">Logout</a></p>
-        {{ end }}
-        <form action="/change" method="post" id="change">
-        <h3>Change email</h3>
-        <p><input type="email" name="new_email" placeholder="new email"></p>
-        <button type="submit">Submit</button>
-        </form>
+        <a href="/logout">Logout</a></p>
     </body>
 </html>

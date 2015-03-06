@@ -43,6 +43,8 @@ func handleLogout(rw http.ResponseWriter, req *http.Request) {
 			players.Add(newUser)
 			log.Println(user.Name, "is remove, added", newUser.Name)
 		}
+	} else {
+		waiters.Remove(user)
 	}
 	http.Redirect(rw, req, "/", http.StatusSeeOther)
 }

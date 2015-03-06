@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"html/template"
 	"log"
 	"net/http"
@@ -9,31 +10,36 @@ import (
 	"path"
 
 	"github.com/gorilla/mux"
+	"golang.org/x/crypto/bcrypt"
 	"golang.org/x/net/websocket"
 
 	"h12.me/httpauth"
 )
 
 type Option struct {
-	Port        string
-	MaxCapacity int
-	CookieKey   string
-	TemplateDir string
-	DbConn      string
+	Port         string
+	MaxCapacity  int
+	CookieKey    string
+	TemplateDir  string
+	DbType       string
+	DbSource     string
+	GenUserCount int
 }
 
 var opt Option
 
 func init() {
 	flag.StringVar(&opt.Port, "port", "9009", "server port")
-	flag.IntVar(&opt.MaxCapacity, "cap", 1, "maximum player count")
+	flag.IntVar(&opt.MaxCapacity, "cap", 100, "maximum player count")
 	flag.StringVar(&opt.CookieKey, "ckey", "cookie-encryption-key", "cookie key")
 	flag.StringVar(&opt.TemplateDir, "tdir", "template", "template directory")
-	flag.StringVar(&opt.DbConn, "dbc", "db/auth.gob", "database connection string")
+	flag.StringVar(&opt.DbType, "dbtype", "mem", "database type: mem, mongo, sql driver")
+	flag.StringVar(&opt.DbSource, "dbsrc", "", "database source")
+	flag.IntVar(&opt.GenUserCount, "gen", 0, "how many fake users to generate (debug only)")
 }
 
 var (
-	backend httpauth.GobFileAuthBackend
+	backend httpauth.AuthBackend
 	auth    httpauth.Authorizer
 	waiters UserQueue
 	players = NewPlayerPool()
@@ -48,7 +54,15 @@ func main() {
 		log.Println(err)
 		os.Exit(1)
 	}
-	if backend, err = httpauth.NewGobFileAuthBackend(opt.DbConn); err != nil {
+	switch opt.DbType {
+	case "mem":
+		backend, err = httpauth.NewMemAuthBackend()
+	case "mongo":
+		backend, err = httpauth.NewMongoAuthBackend(opt.DbSource, "auth")
+	default:
+		backend, err = httpauth.NewSQLAuthBackend(opt.DbType, opt.DbSource)
+	}
+	if err != nil {
 		log.Println(err)
 		os.Exit(1)
 	}
@@ -58,6 +72,19 @@ func main() {
 		map[string]httpauth.Role{"player": 20}); err != nil {
 		log.Println(err)
 		os.Exit(1)
+	}
+	log.Println("generating", opt.GenUserCount, "users")
+	for i := 0; i < opt.GenUserCount; i++ {
+		name := fmt.Sprintf("u%d", i)
+		pass := name
+		hash, _ := bcrypt.GenerateFromPassword([]byte(name+pass), 4)
+		_ = hash
+		user := httpauth.UserData{
+			Name: name,
+			Hash: hash,
+			Role: "player",
+		}
+		backend.SaveUser(user)
 	}
 	r := mux.NewRouter()
 	r.HandleFunc("/login", getLogin).Methods("GET")

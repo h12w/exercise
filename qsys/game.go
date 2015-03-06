@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strconv"
 
 	"golang.org/x/net/websocket"
 
@@ -43,6 +44,6 @@ func serveWaitNum(ws *websocket.Conn) {
 	i := waiters.Register(user.Name, ch)
 	fmt.Fprintf(ws, "%d", i)
 	for m := range ch {
-		fmt.Fprintf(ws, "%d", m.Num)
+		websocket.Message.Send(ws, strconv.Itoa(m.Num))
 	}
 }

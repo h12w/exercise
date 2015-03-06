@@ -61,7 +61,6 @@ func (q *UserQueue) PushBack(u *httpauth.UserData) {
 	defer q.mu.Unlock()
 	for e := q.l.Front(); e != nil; e = e.Next() {
 		if u.Name == e.Value.(*User).Name {
-			log.Println("duplicate", u.Name)
 			return
 		}
 	}
@@ -78,7 +77,6 @@ func (q *UserQueue) PopFront() *httpauth.UserData {
 		i := 0
 		for e := q.l.Front(); e != nil; e = e.Next() {
 			noti := e.Value.(*User)
-			log.Println(noti.Name, i)
 			noti.c <- &Message{i}
 			i++
 		}
@@ -94,6 +92,7 @@ func (q *UserQueue) Register(userName string, c chan *Message) int {
 	for e := q.l.Front(); e != nil; e = e.Next() {
 		if userName == e.Value.(*User).Name {
 			if old := e.Value.(*User).c; old != nil {
+				// if a user log in repeatedly, only keep the lastest websocket to reduce resouce usage
 				close(old)
 			}
 			e.Value.(*User).c = c

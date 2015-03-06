@@ -1,36 +1,83 @@
 package main
 
-import "flag"
+import (
+	"flag"
+	"fmt"
+	"log"
+	"os"
+)
 
 type Option struct {
 	ServerURL string
+	ServerCap int
+	UserCount int
+	Auto      bool
+	Repeat    int
 }
 
 var opt Option
 
 func init() {
-	flag.StringVar(&opt.ServerURL, "url", "http://127.0.0.1:9009", "Server URL")
+	flag.StringVar(&opt.ServerURL, "url", "http://127.0.0.1:9009/", "Server URL")
+	flag.IntVar(&opt.ServerCap, "cap", 100, "Server capacity")
+	flag.IntVar(&opt.UserCount, "cnt", 200, "Total users to login")
+	flag.IntVar(&opt.Repeat, "repeat", 2, "repeat time for auto test")
+	flag.BoolVar(&opt.Auto, "auto", true, "test automatically")
 }
 
 func main() {
 	flag.Parse()
-	s, _ := NewServer(opt.ServerURL)
-	u := NewUser("c", "c")
-	u.Register(s)
+	if opt.Auto {
+		autoTest()
+	}
+}
 
-	//u := NewUser("b", "b")
-	//page, err := u.Login(s)
-	//if err != nil {
-	//	log.Println(err)
-	//	os.Exit(1)
-	//}
-	//fmt.Println(page)
-	//if page.Waiting {
-	//	fmt.Println("ahead", <-page.UserAheadCh)
-	//}
-	//err = u.Logout(s)
-	//if err != nil {
-	//	log.Println(err)
-	//	os.Exit(1)
-	//}
+// autoTest logic:
+// 1. restart server
+// 2. it can only be tested with a single tester instance
+func autoTest() {
+	s, _ := NewServer(opt.ServerURL)
+	pass := true
+	users := make([]*User, opt.UserCount)
+	for i := 0; i < opt.UserCount; i++ {
+		name := fmt.Sprintf("u%d", i)
+		users[i] = NewUser(name, name)
+	}
+
+	for j := 0; j < opt.Repeat; j++ { // log out and log in again to prove users are indeed logged out
+		for i, user := range users {
+			page, err := user.Login(s)
+			if err != nil {
+				log.Println(err)
+				os.Exit(1)
+			}
+			if i < opt.ServerCap {
+				if page.Waiting {
+					log.Println("ERROR: wait before reaching capacity")
+					pass = false
+				}
+				if page.PlayerCount != (i + 1) {
+					log.Println("ERROR: player count not correct")
+					pass = false
+				}
+			} else {
+				if !page.Waiting {
+					log.Println("ERROR: not wait after reaching capacity")
+					pass = false
+				}
+				if <-page.UserAheadCh != (i - opt.ServerCap + 1) {
+					log.Println("ERROR: count of users ahead is not correct")
+					pass = false
+				}
+			}
+		}
+
+		for _, user := range users {
+			user.Logout(s)
+		}
+	}
+
+	if pass {
+		log.Println("TEST PASS.")
+	}
 }

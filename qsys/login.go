@@ -30,9 +30,11 @@ func postLogin(rw http.ResponseWriter, req *http.Request) {
 func handleLogout(rw http.ResponseWriter, req *http.Request) {
 	user, err := auth.Authorize(rw, req)
 	if err != nil {
+		log.Println("fail to authorize")
 		http.Redirect(rw, req, "/login", http.StatusSeeOther)
 		return
 	}
+	log.Println("logout")
 	if err := auth.Logout(rw, req); err != nil {
 		log.Println(err)
 	}

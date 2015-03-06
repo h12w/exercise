@@ -7,6 +7,14 @@ import (
 	"net/http/cookiejar"
 	"net/url"
 	"strconv"
+
+	"golang.org/x/net/websocket"
+
+	"h12.me/html-query/expr"
+)
+
+var (
+	Id = expr.Id
 )
 
 // User simulates the behavior of a user
@@ -14,19 +22,20 @@ type User struct {
 	Name string
 	Pass string
 	c    *http.Client // each user must have its own cookie jar
+	ws   *websocket.Conn
 }
 
 // GamePage encapsule the data of a page needed for tests
 type GamePage struct {
 	Waiting     bool
-	UserTotal   int
+	PlayerCount int
 	UserAheadCh chan int
 }
 
 // NewUser creates a user from name and password
 func NewUser(name, pass string) *User {
 	jar, _ := cookiejar.New(nil)
-	return &User{name, pass, &http.Client{Jar: jar}}
+	return &User{Name: name, Pass: pass, c: &http.Client{Jar: jar}}
 }
 
 func (u *User) Login(s *Server) (*GamePage, error) {
@@ -43,7 +52,7 @@ func (u *User) Login(s *Server) (*GamePage, error) {
 		if total, err := strconv.Atoi(*sTotal); err != nil {
 			return nil, err
 		} else {
-			return &GamePage{UserTotal: total}, nil
+			return &GamePage{PlayerCount: total}, nil
 		}
 	} else if root.Html(Id("wait")) != nil {
 		return u.Wait(s)
@@ -62,25 +71,31 @@ func (u *User) Register(s *Server) error {
 
 func (u *User) Logout(s *Server) error {
 	_, err := s.Get(u.c, "logout")
+	if u.ws != nil {
+		u.ws.Close()
+		u.ws = nil
+	}
 	return err
 }
 
 func (u *User) Wait(s *Server) (*GamePage, error) {
 	ws, err := s.Dial("wait-num", u.c.Jar)
+	u.ws = ws
 	if err != nil {
 		return nil, err
 	}
 	ch := make(chan int)
 	go func() {
-		var buf [512]byte
+		defer ws.Close()
+		var buf []byte
 		for {
-			n, err := ws.Read(buf[:])
+			err := websocket.Message.Receive(ws, &buf)
 			if err != nil {
 				log.Println(err)
 				close(ch)
 				break
 			}
-			userAhead, err := strconv.Atoi(string(buf[:n]))
+			userAhead, err := strconv.Atoi(string(buf))
 			if err != nil {
 				log.Println(err)
 				close(ch)

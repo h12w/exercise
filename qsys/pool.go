@@ -30,7 +30,6 @@ func (p *PlayerPool) Remove(user *httpauth.UserData) (removed bool) {
 	if _, in := p.m[user.Name]; !in {
 		return false
 	}
-	auth.ChangeRole(user, "waiter")
 	delete(p.m, user.Name)
 	p.capacity++
 	log.Println("capacity++", p.capacity)
@@ -45,9 +44,6 @@ func (p *PlayerPool) Add(user *httpauth.UserData) (isPlayer bool) {
 	}
 	if p.capacity == 0 {
 		return false
-	}
-	if err := auth.ChangeRole(user, "player"); err != nil {
-		log.Println(err)
 	}
 	p.m[user.Name] = user
 	p.capacity--
@@ -80,7 +76,6 @@ func (q *UserQueue) PopFront() *httpauth.UserData {
 		noti.c <- &Message{0}
 		close(noti.c)
 		i := 0
-		log.Println("NotifyAll")
 		for e := q.l.Front(); e != nil; e = e.Next() {
 			noti := e.Value.(*User)
 			log.Println(noti.Name, i)
@@ -98,6 +93,9 @@ func (q *UserQueue) Register(userName string, c chan *Message) int {
 	i := 1
 	for e := q.l.Front(); e != nil; e = e.Next() {
 		if userName == e.Value.(*User).Name {
+			if old := e.Value.(*User).c; old != nil {
+				close(old)
+			}
 			e.Value.(*User).c = c
 			return i
 		}

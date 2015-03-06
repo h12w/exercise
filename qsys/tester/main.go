@@ -1,36 +1,36 @@
 package main
 
-import (
-	"log"
-	"net/http"
-	"net/http/cookiejar"
-	"net/url"
-	"os"
-)
+import "flag"
 
-type User struct {
-	Name string
-	Pass string
-	c    *http.Client // each user must have its own cookie jar
+type Option struct {
+	ServerURL string
 }
 
-func NewUser(name, pass string) *User {
-	jar, _ := cookiejar.New(nil)
-	return &User{name, pass, &http.Client{Jar: jar}}
-}
+var opt Option
 
-func (u *User) Login(s *Server) error {
-	return s.PostForm(u.c, "login", url.Values{
-		"username": []string{u.Name},
-		"password": []string{u.Pass},
-	})
+func init() {
+	flag.StringVar(&opt.ServerURL, "url", "http://127.0.0.1:9009", "Server URL")
 }
 
 func main() {
-	s := NewServer("http://127.0.0.1:8009/")
-	u := NewUser("a", "a")
-	if err := u.Login(s); err != nil {
-		log.Println(err)
-		os.Exit(1)
-	}
+	flag.Parse()
+	s, _ := NewServer(opt.ServerURL)
+	u := NewUser("c", "c")
+	u.Register(s)
+
+	//u := NewUser("b", "b")
+	//page, err := u.Login(s)
+	//if err != nil {
+	//	log.Println(err)
+	//	os.Exit(1)
+	//}
+	//fmt.Println(page)
+	//if page.Waiting {
+	//	fmt.Println("ahead", <-page.UserAheadCh)
+	//}
+	//err = u.Logout(s)
+	//if err != nil {
+	//	log.Println(err)
+	//	os.Exit(1)
+	//}
 }

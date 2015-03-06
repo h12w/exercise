@@ -1,10 +1,12 @@
 package main
 
 import (
-	"fmt"
+	"flag"
 	"html/template"
+	"log"
 	"net/http"
-	"strconv"
+	"os"
+	"path"
 
 	"github.com/gorilla/mux"
 	"golang.org/x/net/websocket"
@@ -12,51 +14,60 @@ import (
 	"h12.me/httpauth"
 )
 
+type Option struct {
+	Port        string
+	MaxCapacity int
+	CookieKey   string
+	TemplateDir string
+	DbConn      string
+}
+
+var opt Option
+
+func init() {
+	flag.StringVar(&opt.Port, "port", "9009", "server port")
+	flag.IntVar(&opt.MaxCapacity, "cap", 1, "maximum player count")
+	flag.StringVar(&opt.CookieKey, "ckey", "cookie-encryption-key", "cookie key")
+	flag.StringVar(&opt.TemplateDir, "tdir", "template", "template directory")
+	flag.StringVar(&opt.DbConn, "dbc", "db/auth.gob", "database connection string")
+}
+
 var (
-	maxCapacity = 2
-
-	backend     httpauth.GobFileAuthBackend
-	backendfile = "db/auth.gob"
-
+	backend httpauth.GobFileAuthBackend
 	auth    httpauth.Authorizer
 	waiters UserQueue
 	players = NewPlayerPool()
-
-	cookieKey = []byte("cookie-encryption-key")
-	port      = 8009
-	tem       *template.Template
+	tem     *template.Template
 )
 
 func main() {
-	players.capacity = maxCapacity
+	flag.Parse()
 	var err error
-	tem, err = template.ParseGlob("template/*.html")
-	if err != nil {
-		panic(err)
+	players.capacity = opt.MaxCapacity
+	if tem, err = template.ParseGlob(path.Join(opt.TemplateDir, "*.html")); err != nil {
+		log.Println(err)
+		os.Exit(1)
 	}
-	// create the backend storage, remove when all done
-	//os.Create(backendfile)
-	// create the backend
-	backend, err = httpauth.NewGobFileAuthBackend(backendfile)
-	if err != nil {
-		panic(err)
+	if backend, err = httpauth.NewGobFileAuthBackend(opt.DbConn); err != nil {
+		log.Println(err)
+		os.Exit(1)
 	}
-	auth, err = httpauth.NewAuthorizer(backend, cookieKey, "waiter",
-		map[string]httpauth.Role{
-			"waiter": 10,
-			"player": 20,
-		})
-	// set up routers and route handlers
+	if auth, err = httpauth.NewAuthorizer(
+		backend,
+		[]byte(opt.CookieKey), "player",
+		map[string]httpauth.Role{"player": 20}); err != nil {
+		log.Println(err)
+		os.Exit(1)
+	}
 	r := mux.NewRouter()
 	r.HandleFunc("/login", getLogin).Methods("GET")
 	r.HandleFunc("/login", postLogin).Methods("POST")
 	r.HandleFunc("/register", postRegister).Methods("POST")
-	//r.HandleFunc("/admin", handleAdmin).Methods("GET")
 	r.HandleFunc("/", handleGame).Methods("GET") // authorized page
 	r.HandleFunc("/logout", handleLogout)
 	http.Handle("/wait-num", websocket.Handler(serveWaitNum))
 	r.PathPrefix("/").Handler(http.FileServer(http.Dir("./static/")))
 	http.Handle("/", r)
-	fmt.Printf("Server running on port %d\n", port)
-	http.ListenAndServe(":"+strconv.Itoa(port), nil)
+	log.Printf("Server listening on :%s\n", opt.Port)
+	http.ListenAndServe(":"+opt.Port, nil)
 }

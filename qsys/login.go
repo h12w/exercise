@@ -19,7 +19,6 @@ func getLogin(rw http.ResponseWriter, req *http.Request) {
 func postLogin(rw http.ResponseWriter, req *http.Request) {
 	username := req.PostFormValue("username")
 	password := req.PostFormValue("password")
-	log.Println(username, password, "loging in")
 	if err := auth.Login(rw, req, username, password, "/"); err != nil && err.Error() == "already authenticated" {
 		http.Redirect(rw, req, "/", http.StatusSeeOther)
 	} else if err != nil {

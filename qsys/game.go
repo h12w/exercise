@@ -34,7 +34,11 @@ func handleGame(rw http.ResponseWriter, req *http.Request) {
 }
 
 func serveWaitNum(ws *websocket.Conn) {
-	user, _ := auth.Authorize(nil, ws.Request())
+	user, err := auth.Authorize(nil, ws.Request())
+	if err != nil {
+		log.Println("fail to authenticate user", err)
+		return
+	}
 	ch := make(chan *Message, 1)
 	i := waiters.Register(user.Name, ch)
 	fmt.Fprintf(ws, "%d", i)

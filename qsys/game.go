@@ -17,16 +17,18 @@ func handleGame(rw http.ResponseWriter, req *http.Request) {
 		http.Redirect(rw, req, "/login", http.StatusSeeOther)
 		return
 	}
-	type data struct {
-		User *httpauth.UserData
-	}
-	d := data{User: user}
 	templ := "game.html"
 	if !players.Add(user) {
 		waiters.PushBack(user)
 		templ = "wait.html"
 	}
-	if err := tem.ExecuteTemplate(rw, templ, d); err != nil {
+	if err := tem.ExecuteTemplate(rw, templ, struct {
+		User      *httpauth.UserData
+		UserTotal int
+	}{
+		User:      user,
+		UserTotal: players.Count(),
+	}); err != nil {
 		log.Println(err.Error())
 	}
 }

@@ -13,7 +13,7 @@ import (
 )
 
 var (
-	N = 5
+	maxCapacity = 2
 
 	backend     httpauth.GobFileAuthBackend
 	backendfile = "auth.gob"
@@ -27,7 +27,7 @@ var (
 )
 
 func main() {
-	players.capacity = 1
+	players.capacity = maxCapacity
 	var err error
 	tem, err = template.ParseGlob("template/*.html")
 	if err != nil {

@@ -13,6 +13,12 @@ type playerPool struct {
 	mu       sync.Mutex
 }
 
+func (p *playerPool) Count() int {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	return maxCapacity - p.capacity
+}
+
 func (p *playerPool) Remove(user *httpauth.UserData) bool {
 	p.mu.Lock()
 	defer p.mu.Unlock()
@@ -82,12 +88,6 @@ func (q *UserQueue) PopFront() *httpauth.UserData {
 		return noti.UserData
 	}
 	return nil
-}
-
-func (q *UserQueue) NotifyAll() {
-	q.mu.Lock()
-	defer q.mu.Unlock()
-
 }
 
 func (q *UserQueue) Register(userName string, c chan int) int {

@@ -16,14 +16,15 @@ var (
 	maxCapacity = 2
 
 	backend     httpauth.GobFileAuthBackend
-	backendfile = "auth.gob"
+	backendfile = "db/auth.gob"
 
 	auth    httpauth.Authorizer
 	waiters UserQueue
-	players playerPool
+	players = NewPlayerPool()
 
-	port = 8009
-	tem  *template.Template
+	cookieKey = []byte("cookie-encryption-key")
+	port      = 8009
+	tem       *template.Template
 )
 
 func main() {
@@ -40,21 +41,11 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	auth, err = httpauth.NewAuthorizer(backend, []byte("cookie-encryption-key"), "waiter",
+	auth, err = httpauth.NewAuthorizer(backend, cookieKey, "waiter",
 		map[string]httpauth.Role{
 			"waiter": 10,
 			"player": 20,
 		})
-	//	// create a default user
-	//	hash, err := bcrypt.GenerateFromPassword([]byte("adminadmin"), 8)
-	//	if err != nil {
-	//		panic(err)
-	//	}
-	//	defaultUser := httpauth.UserData{Username: "admin", Email: "admin@localhost", Hash: hash, Role: "admin"}
-	//	err = backend.SaveUser(defaultUser)
-	//	if err != nil {
-	//		panic(err)
-	//	}
 	// set up routers and route handlers
 	r := mux.NewRouter()
 	r.HandleFunc("/login", getLogin).Methods("GET")

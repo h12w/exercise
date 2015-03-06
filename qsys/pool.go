@@ -8,34 +8,39 @@ import (
 	"h12.me/httpauth"
 )
 
-type playerPool struct {
+type PlayerPool struct {
+	m        map[string]*httpauth.UserData
 	capacity int
 	mu       sync.Mutex
 }
 
-func (p *playerPool) Count() int {
-	p.mu.Lock()
-	defer p.mu.Unlock()
-	return maxCapacity - p.capacity
+func NewPlayerPool() PlayerPool {
+	return PlayerPool{m: make(map[string]*httpauth.UserData)}
 }
 
-func (p *playerPool) Remove(user *httpauth.UserData) bool {
+func (p *PlayerPool) Count() int {
 	p.mu.Lock()
 	defer p.mu.Unlock()
-	if !auth.Satisfy(user, "player") {
+	return len(p.m)
+}
+
+func (p *PlayerPool) Remove(user *httpauth.UserData) (removed bool) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	if _, in := p.m[user.Name]; !in {
 		return false
 	}
 	auth.ChangeRole(user, "waiter")
+	delete(p.m, user.Name)
 	p.capacity++
 	log.Println("capacity++", p.capacity)
 	return true
 }
 
-func (p *playerPool) Add(user *httpauth.UserData) (isPlayer bool) {
+func (p *PlayerPool) Add(user *httpauth.UserData) (isPlayer bool) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
-	if auth.Satisfy(user, "player") {
-		log.Printf("user %s is already a player", user.Name)
+	if _, in := p.m[user.Name]; in {
 		return true
 	}
 	if p.capacity == 0 {
@@ -44,6 +49,7 @@ func (p *playerPool) Add(user *httpauth.UserData) (isPlayer bool) {
 	if err := auth.ChangeRole(user, "player"); err != nil {
 		log.Println(err)
 	}
+	p.m[user.Name] = user
 	p.capacity--
 	log.Println("capacity--", p.capacity)
 	return true
@@ -53,36 +59,32 @@ type UserQueue struct {
 	l  list.List
 	mu sync.Mutex
 }
-type userNotifier struct {
-	*httpauth.UserData
-	c chan int
-}
 
 func (q *UserQueue) PushBack(u *httpauth.UserData) {
 	q.mu.Lock()
 	defer q.mu.Unlock()
 	for e := q.l.Front(); e != nil; e = e.Next() {
-		if u.Name == e.Value.(*userNotifier).Name {
+		if u.Name == e.Value.(*User).Name {
 			log.Println("duplicate", u.Name)
 			return
 		}
 	}
-	q.l.PushBack(&userNotifier{UserData: u})
+	q.l.PushBack(&User{UserData: u})
 }
 
 func (q *UserQueue) PopFront() *httpauth.UserData {
 	q.mu.Lock()
 	defer q.mu.Unlock()
 	if q.l.Len() > 0 {
-		noti := q.l.Remove(q.l.Front()).(*userNotifier)
-		noti.c <- 0
+		noti := q.l.Remove(q.l.Front()).(*User)
+		noti.c <- &Message{0}
 		close(noti.c)
 		i := 0
 		log.Println("NotifyAll")
 		for e := q.l.Front(); e != nil; e = e.Next() {
-			noti := e.Value.(*userNotifier)
+			noti := e.Value.(*User)
 			log.Println(noti.Name, i)
-			noti.c <- i
+			noti.c <- &Message{i}
 			i++
 		}
 		return noti.UserData
@@ -90,13 +92,13 @@ func (q *UserQueue) PopFront() *httpauth.UserData {
 	return nil
 }
 
-func (q *UserQueue) Register(userName string, c chan int) int {
+func (q *UserQueue) Register(userName string, c chan *Message) int {
 	q.mu.Lock()
 	defer q.mu.Unlock()
 	i := 1
 	for e := q.l.Front(); e != nil; e = e.Next() {
-		if userName == e.Value.(*userNotifier).Name {
-			e.Value.(*userNotifier).c = c
+		if userName == e.Value.(*User).Name {
+			e.Value.(*User).c = c
 			return i
 		}
 		i++

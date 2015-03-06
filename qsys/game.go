@@ -35,10 +35,10 @@ func handleGame(rw http.ResponseWriter, req *http.Request) {
 
 func serveWaitNum(ws *websocket.Conn) {
 	user, _ := auth.Authorize(nil, ws.Request())
-	ch := make(chan int, 1)
+	ch := make(chan *Message, 1)
 	i := waiters.Register(user.Name, ch)
 	fmt.Fprintf(ws, "%d", i)
-	for i := range ch {
-		fmt.Fprintf(ws, "%d", i)
+	for m := range ch {
+		fmt.Fprintf(ws, "%d", m.Num)
 	}
 }

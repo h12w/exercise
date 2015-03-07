@@ -72,7 +72,7 @@ go get h12.me/exercise/qsys
 
 * Mux和session管理: 轻量级的[Gorilla Toolkit](http://www.gorillatoolkit.org)
 * 用户登陆: 自己修改过的[httpauth](https://github.com/hailiang/httpauth)
-* Websocket: 准标准库[x/net/websocket](golang.org/x/net/websocket)
+* Websocket: 准标准库[x/net/websocket](https://godoc.org/golang.org/x/net/websocket)
 * HTML页面解析：自己写的[html-query](https://github.com/hailiang/html-query)
 
 ### 登陆系统 (qsys/login.go)
@@ -103,8 +103,8 @@ websocket的方式通知客户端浏览器。需要注意的是在该用户移�
 
 Server (qsys/tester/server.go) 提供了表单提交和连接websocket的功能。
 User (qsys/tester/user.go) 模拟登入，登出，注册和获取前方等待人数, 每个操作都会
-解析返回的网页，保存在GamePage结构中。Websocket同样在客户端也连接了一个channel,
-用来读取等待人数。
+用html-query解析返回的网页，保存在GamePage结构中。Websocket同样在客户端也连接了
+一个channel, 用来读取等待人数。
 
 测试脚本(qsys/tester/test.go)先登入一定数量（超过玩家上限）的用户，然后再依次
 登出。重复两遍来确保登出操作在服务器正确执行。在自动模式下，会检查每一步返回

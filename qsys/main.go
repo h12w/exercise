@@ -57,6 +57,8 @@ func main() {
 	switch opt.DbType {
 	case "mem":
 		backend, err = httpauth.NewMemAuthBackend()
+	case "file":
+		backend, err = httpauth.NewGobFileAuthBackend(opt.DbSource)
 	case "mongo":
 		backend, err = httpauth.NewMongoAuthBackend(opt.DbSource, "auth")
 	default:

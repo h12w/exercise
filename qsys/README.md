@@ -17,7 +17,7 @@ qsys是对游戏排队系统的一个练习。
 
 ### 安装
 
-1. 从源代码编译安装的前提的Go语言开发环境，请参考：[Go Gettting
+1. 从源代码编译安装，需要Go语言开发环境，请参考：[Go Gettting
 Started](http://golang.org/doc/install).
 
 2. go get

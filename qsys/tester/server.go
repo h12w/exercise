@@ -5,7 +5,7 @@ import (
 	"net/url"
 
 	"golang.org/x/net/websocket"
-	"h12.me/html-query"
+	"h12.io/html-query"
 )
 
 type Server struct {

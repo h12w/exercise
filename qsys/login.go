@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"strings"
 
-	"h12.me/httpauth"
+	"h12.io/httpauth"
 )
 
 func getLogin(rw http.ResponseWriter, req *http.Request) {

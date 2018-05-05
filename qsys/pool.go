@@ -5,7 +5,7 @@ import (
 	"log"
 	"sync"
 
-	"h12.me/httpauth"
+	"h12.io/httpauth"
 )
 
 type User struct {

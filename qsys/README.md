@@ -22,7 +22,7 @@ Started](http://golang.org/doc/install).
 
 2. go get
 ```
-go get h12.me/exercise/qsys
+go get h12.io/exercise/qsys
 ```
 
 ### 命令行参数

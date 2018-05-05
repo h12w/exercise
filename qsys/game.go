@@ -8,7 +8,7 @@ import (
 
 	"golang.org/x/net/websocket"
 
-	"h12.me/httpauth"
+	"h12.io/httpauth"
 )
 
 func handleGame(rw http.ResponseWriter, req *http.Request) {

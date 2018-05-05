@@ -13,7 +13,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	"golang.org/x/net/websocket"
 
-	"h12.me/httpauth"
+	"h12.io/httpauth"
 )
 
 type Option struct {

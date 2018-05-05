@@ -10,7 +10,7 @@ import (
 
 	"golang.org/x/net/websocket"
 
-	"h12.me/html-query/expr"
+	"h12.io/html-query/expr"
 )
 
 var (
